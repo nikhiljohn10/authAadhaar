@@ -1,0 +1,8 @@
+<Auth uid="" rc="" tid="" ac="" sa="" ver="" txn="" lk="">
+  <Uses pi="" pa="" pfa="" bio="" bt="" pin="" otp=""/>
+  <Device rdsId="" rdsVer="" dpId="" dc="" mi="" mc=""/>
+  <Skey ci="">encrypted and encoded session key</Skey>
+  <Hmac>SHA-256 Hash of Pid block, encrypted and then encoded</Hmac>
+  <Data type="X|P">encrypted PID block</Data>
+  <Signature>Digital signature of AUA</Signature>
+</Auth>

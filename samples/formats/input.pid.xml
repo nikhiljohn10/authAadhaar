@@ -1,0 +1,11 @@
+<Pid ts="" ver="" wadh="””">
+  <Demo lang="">
+    <Pi ms="E" mv="" name="" lname="" lmv="" gender="M|F|T" dob="" dobt="V|D|A" age="" phone="" email=""/>
+    <Pa ms="E" co="" house="" street="" lm="" loc="" vtc="" subdist="" dist="" state="" country="" pc="" po=""/>
+    <Pfa ms="E" mv="" av="" lav="" lmv=""/>
+  </Demo>
+  <Bios dih="">
+    <Bio type="FMR|FIR|IIR|FID" posh="" bs="">encoded biometric</Bio>
+  </Bios>
+  <Pv otp="" pin=""/>
+</Pid>
