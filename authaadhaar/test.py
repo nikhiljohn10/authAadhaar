@@ -1,3 +1,5 @@
+# Testing API
+
 class User:
     uid = "999941057058"
     name = "Shivshankar Choudhury"
@@ -14,4 +16,14 @@ class User:
     pincode = "110002"
 
 
-print(User.uid)
+class PublicAPI:
+
+    version = "2.5"
+    aualk = "MBni88mRNM18dKdiVyDYCuddwXEQpl68dZAGBQ2nsOlGMzC9DkOVL5s"
+    asalk = "MMxNu7a6589B5x5RahDW-zNP7rhGbZb5HsTRwbi-VVNxkoFmkHGmYKM"
+
+    class Auth:
+        url = f"http://auth.uidai.gov.in/{PublicAPI.version}/public/0/0/{PublicAPI.asalk}"
+
+    class OTP:
+        url = f"http://developer.uidai.gov.in/otp/{PublicAPI.version}/public/0/0/{PublicAPI.asalk}"
