@@ -1,15 +1,20 @@
-# from .encrypt import encrypt
+from .data import Files
+from .encrypt import Certificate
+from .input import Collector
+from .request import Session
 
-# message = "Hello World"
-# encrypted_message = encrypt(message=message, padding_scheme="PKCS1")
-# print(encrypted_message)
-# encrypted_message = encrypt(message=message)
-# print(encrypted_message)
+data = Collector()
+data.collect()
+cert = Certificate(location=Files.stagging_certificate)
+req = Session(data=data, certificate=cert)
 
-from xml.etree import ElementTree as ET
+pid_block = f'<Pid ts="{data.ts}">This is PID block with user data of {data.user.name}</Pid>'
+encrypted_pid_block = req.encrypt(pid_block)
+auth_block = f"<Auth>{encrypted_pid_block}</Auth>"
 
-from .input import auth_data
-
-x = ET.fromstring(auth_data)
-
-ET.dump(x)
+print("session key")
+print(req.key)
+print("encrypted session key")
+print(req.encrypted_key)
+print("auth_block")
+print(auth_block)
