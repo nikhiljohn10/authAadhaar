@@ -45,7 +45,7 @@ if (openssl_pkcs12_read($cert_store, $cert_info, $certpassword)) {
 } else {
   echo "Error: Unable to read the cert store.\n";
   exit;
-} 
+}
 
 define("UIDAI_PUBLIC_CERTIFICATE" , $publickeypath);
 define("AUA_PRIVATE_CERTIFICATE" , $cert_info["pkey"]);
@@ -60,9 +60,9 @@ $pid_1='<Pid ts='.$ts.' ver="1.0"><Pv otp="'.$otp.'"/></Pid>';
 $randkey = generateRandomString();
 $SESSION_ID = $randkey;
 $skey1=encryptMcrypt($SESSION_ID); $skey=base64_encode($skey1); // generate ci code start
-$ci=getExpiryDate(UIDAI_PUBLIC_CERTIFICATE); // generate pid block code start 
+$ci=getExpiryDate(UIDAI_PUBLIC_CERTIFICATE); // generate pid block code start
 
-$pid=encryptPID($pid_1,$randkey); //hmac creation code start 
+$pid=encryptPID($pid_1,$randkey); //hmac creation code start
 $hash=hash("SHA256",$pid_1,true);
 $hmac=encryptPID($hash,$randkey);
 $load_xml="
@@ -72,7 +72,7 @@ $load_xml="
   <Skey ci=\"$ci\">$skey</Skey>
   <Data type=\"X\">$pid</Data>
   <Hmac>$hmac</Hmac>
-</Auth>"; 
+</Auth>";
 
 $dom = new DOMDocument();
 $dom->loadXML($load_xml); // the XML you specified above.
@@ -87,7 +87,7 @@ $objDSig->appendSignature($dom->documentElement);
 $xml_string = $dom->saveXML();
 $xml_string1 = urlencode($xml_string);
 
-$curl = curl_init(); $url=""; //aadhar service url 
+$curl = curl_init(); $url=""; //aadhar service url
 curl_setopt($curl, CURLOPT_URL, $url);
 curl_setopt($curl, CURLOPT_POST, true);
 curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
@@ -96,7 +96,7 @@ curl_setopt($curl, CURLOPT_POSTFIELDS,"eXml=A28".$xml_string1);
 curl_setopt($curl, CURLOPT_RETURNTRANSFER, true); /* complete within 20 seconds */
 curl_setopt($curl, CURLOPT_TIMEOUT, 20);
 $result = curl_exec($curl);
-curl_close($curl); 
+curl_close($curl);
 
 $xml = @simplexml_load_string($result);
 $return_status=$xml['ret'];
@@ -107,7 +107,7 @@ if($return_status=="y"){
 if($return_status!="y"){
   $res=0;
 } else {
-  $res='Aadhaar no not exist'; 
+  $res='Aadhaar no not exist';
 }
 
 ?>
