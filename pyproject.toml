@@ -5,7 +5,7 @@ description = "Aadhaar Authentication/Verification using Python"
 authors = ["Nikhil John <nikhiljohn1010@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.8.10"
 cryptography = "^3.4.7"
 
 [tool.poetry.dev-dependencies]

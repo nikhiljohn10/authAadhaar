@@ -1,11 +1,13 @@
 import uuid
 
-from .data import User, PublicAPI
+from .data import PublicAPI, User
 from .encrypt import Certificate
 from .session import Session
 
+
 def get_transaction_id(uid):
     return uuid.uuid5(uuid.uuid4(), str(uid))
+
 
 class Config:
     class Uses:

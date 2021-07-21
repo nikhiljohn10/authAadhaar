@@ -1,15 +1,16 @@
-from os import urandom
 from base64 import b64encode
+from os import urandom
+
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 
-class Crypto:
 
+class Crypto:
     @staticmethod
     def randkey(size: int = 256) -> bytes:
-        return urandom(size//8)
+        return urandom(size // 8)
 
     @staticmethod
     def encode(data) -> str:
@@ -22,7 +23,7 @@ class Certificate:
             self.binary = cert_file.read()
         self.pem = x509.load_pem_x509_certificate(self.binary, backend=default_backend())
         self.pub = self.pem.public_key()
-        self.cert_id = self.pem.not_valid_after.strftime('%Y%m%d')
+        self.cert_id = self.pem.not_valid_after.strftime("%Y%m%d")
 
     def encrypt(self, message: str, pkcs1_padding: bool = False, sha256_hash: bool = True):
         if pkcs1_padding:
