@@ -1,8 +1,8 @@
 import base64
-from datetime import datetime
-import secrets
 from typing import Union
+
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from .encrypt import Certificate
 from .input import Collector
 
@@ -22,15 +22,13 @@ class Session:
         nonce = self.__get_nonce()
         encryptor = AESGCM(self.key)
         encrypted = encryptor.encrypt(nonce, data, aad) + aad + self.ts.encode()
-        encoded = base64.b64encode(encrypted).decode('utf-8')
+        encoded = base64.b64encode(encrypted).decode("utf-8")
         return encoded
 
     def __get_nonce(self) -> bytes:
-        binary_data = self.ts.encode('utf-8')
+        binary_data = self.ts.encode("utf-8")
         return binary_data[-12:]
 
     def __get_aad(self) -> bytes:
-        binary_data = self.ts.encode('utf-8')
+        binary_data = self.ts.encode("utf-8")
         return binary_data[-16:]
-        
-
