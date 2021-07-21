@@ -1,7 +1,7 @@
 <? php
 
-function encryptMcrypt($data){
-  $fp             = fopen(UIDAI_PUBLIC_CERTIFICATE, "r");
+function encryptMcrypt($data) {
+  $fp = fopen(UIDAI_PUBLIC_CERTIFICATE, "r");
   $pub_key_string = fread($fp, 8192);
   openssl_public_encrypt($data, $encrypted_data, $pub_key_string, OPENSSL_PKCS1_PADDING);
   return $encrypted_data;
@@ -59,7 +59,8 @@ $ts='"'.$date1.'"';
 $pid_1='<Pid ts='.$ts.' ver="1.0"><Pv otp="'.$otp.'"/></Pid>';
 $randkey = generateRandomString();
 $SESSION_ID = $randkey;
-$skey1=encryptMcrypt($SESSION_ID); $skey=base64_encode($skey1); // generate ci code start
+$skey1=encryptMcrypt($SESSION_ID);
+$skey=base64_encode($skey1); // generate ci code start
 $ci=getExpiryDate(UIDAI_PUBLIC_CERTIFICATE); // generate pid block code start
 
 $pid=encryptPID($pid_1,$randkey); //hmac creation code start

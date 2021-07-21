@@ -29,3 +29,9 @@ class PublicAPI(API):
 
     class OTP:
         url = f"http://developer.uidai.gov.in/otp/{API.version}/public/0/0/{API.asalk}"
+
+
+class Files:
+    production_certificate = "./resources/certs/uidai_auth_prod.cer"
+    digital_signature = "./resources/certs/uidai_auth_sign_prod.cer"
+    stagging_certificate = "./resources/certs/uidai_auth_stage.cer"
