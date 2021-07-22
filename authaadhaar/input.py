@@ -4,8 +4,6 @@ from .data import User
 
 
 class Collector:
-    def __init__(self) -> None:
-        self.ts = self.get_ts()
 
     @staticmethod
     def get_ts() -> str:
@@ -15,6 +13,7 @@ class Collector:
 
     def collect(self):
         self.user = User
+        self.ts = self.get_ts()
 
 
 # import uuid
