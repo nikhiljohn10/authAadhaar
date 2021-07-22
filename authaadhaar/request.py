@@ -1,8 +1,8 @@
 import base64
-from datetime import datetime
-import secrets
 from typing import Union
+
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from .encrypt import Certificate
 from .input import Collector
 
@@ -18,19 +18,10 @@ class Session:
     def encrypt(self, data: Union[str, bytes]) -> str:
         if not isinstance(data, bytes):
             data = data.encode()
-        aad = self.__get_aad()
-        nonce = self.__get_nonce()
+        ts = self.ts.encode()
+        aad = ts[-16:]
+        nonce = ts[-12:]
         encryptor = AESGCM(self.key)
-        encrypted = encryptor.encrypt(nonce, data, aad) + aad + self.ts.encode()
-        encoded = base64.b64encode(encrypted).decode('utf-8')
+        encrypted = encryptor.encrypt(nonce, data, aad) + ts
+        encoded = base64.b64encode(encrypted).decode()
         return encoded
-
-    def __get_nonce(self) -> bytes:
-        binary_data = self.ts.encode('utf-8')
-        return binary_data[-12:]
-
-    def __get_aad(self) -> bytes:
-        binary_data = self.ts.encode('utf-8')
-        return binary_data[-16:]
-        
-

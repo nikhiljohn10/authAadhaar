@@ -12,9 +12,9 @@ pid_block = f'<Pid ts="{data.ts}">This is PID block with user data of {data.user
 encrypted_pid_block = req.encrypt(pid_block)
 auth_block = f"<Auth>{encrypted_pid_block}</Auth>"
 
-print("session key")
+print("Session Key")
 print(req.key)
-print("encrypted session key")
+print("Encrypted Session Key")
 print(req.encrypted_key)
-print("auth_block")
+print("Auth Block")
 print(auth_block)
