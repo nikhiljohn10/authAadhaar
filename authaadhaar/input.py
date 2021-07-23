@@ -4,7 +4,6 @@ from .data import User
 
 
 class Collector:
-
     @staticmethod
     def get_ts() -> str:
         now = datetime.now()
