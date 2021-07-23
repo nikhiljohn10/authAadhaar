@@ -22,5 +22,5 @@ class Certificate:
         if not isinstance(key, bytes):
             key = key.encode()
         encrypted_key = self.public_key.encrypt(key, padding.PKCS1v15())
-        encoded_key = b64encode(encrypted_key).decode("utf-8")
+        encoded_key = b64encode(encrypted_key).decode()
         return encoded_key
