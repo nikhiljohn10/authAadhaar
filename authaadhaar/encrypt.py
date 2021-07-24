@@ -16,11 +16,14 @@ class Certificate:
     def _load_cert(self, location: str) -> bytes:
         with open(location, "rb") as cert_file:
             pem_binary = cert_file.read()
+
         return pem_binary
 
     def encrypt_key(self, key: Union[bytes, str]) -> str:
         if not isinstance(key, bytes):
             key = key.encode()
+
         encrypted_key = self.public_key.encrypt(key, padding.PKCS1v15())
         encoded_key = b64encode(encrypted_key).decode()
+
         return encoded_key
