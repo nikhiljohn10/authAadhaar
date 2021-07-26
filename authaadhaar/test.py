@@ -1,5 +1,9 @@
 from .client import Client
 
+from .data import XMLData
+
 c = Client()
 
-c.connect()
+# c.connect()
+
+x = XMLData()
