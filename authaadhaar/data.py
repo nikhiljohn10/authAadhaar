@@ -1,12 +1,21 @@
-from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass
-from typing import Dict
-from xml.etree.ElementTree import Element, SubElement, tostring
-from defusedxml import ElementTree as ET
 import secrets
-from .encrypt import Certificate
-from authaadhaar import __auth_version__
 from datetime import datetime
+from typing import TYPE_CHECKING, Dict
+
+from defusedxml import ElementTree as ET
+
+from authaadhaar import __auth_version__
+
+from .encrypt import Certificate
+
+if TYPE_CHECKING:
+    # Does not exists at runtime. Only used for type checking.
+    from .typing import Element, ElementTree
+
+# from xml.etree.ElementTree import Element, SubElement, tostring
+# from abc import ABCMeta, abstractmethod
+# from dataclasses import dataclass
+
 
 class User:
 
@@ -28,8 +37,6 @@ class User:
     pincode = "110002"
 
 
-
-
 class AppData:
     production_certificate = "./resources/certs/uidai_auth_prod.cer"
     digital_signature = "./resources/certs/uidai_auth_sign_prod.cer"
@@ -41,18 +48,158 @@ class AppData:
 
     @staticmethod
     def get_auth_url():
-        return f"http://auth.uidai.gov.in/{__auth_version__}/public/0/0/{License.asa}"
+        return f"http://auth.uidai.gov.in/{__auth_version__}/public/0/0/{AppData.License.asa}"
 
     @staticmethod
     def get_otp_url():
-        return f"http://developer.uidai.gov.in/otp/{__auth_version__}/public/0/0/{License.asa}"
+        return f"http://developer.uidai.gov.in/otp/{__auth_version__}/public/0/0/{AppData.License.asa}"
 
+
+class XMLData:
+    def __init__(
+        self,
+        certificate: Certificate = None,
+        uid: str = "",
+        license: str = "",
+        auth_attrs: Dict[str, str] = None,
+        uses_attrs: Dict[str, str] = None,
+    ) -> None:
+        self._pid_tree: ElementTree = ET.parse("./resources/formats/input.pid.xml")
+        print(type(self._pid_tree))
+        self._auth_tree: ElementTree = ET.parse("./resources/formats/input.xml")
+        self._uid = uid or User.uid
+        self._license = license or AppData.License.asa
+        self._cert = certificate or Certificate(AppData.stagging_certificate)
+        self._auth_attrs = auth_attrs or self._get_auth_attrs()
+        self._uses_attrs = uses_attrs or {
+            "pi": "y",
+            "pa": "y",
+            "pfa": "n",
+            "bio": "n",
+            "pin": "n",
+            "otp": "n",
+        }
+        self._ts = self._get_ts()
+
+    def _get_ts(self) -> str:
+        now = datetime.now()
+        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
+        return ts
+
+    def create_pid_block(self) -> str:
+        pi_attrs = {
+            "ms": "E",
+            "mv": "100",
+            "name": User.name,
+            "gender": User.gender,
+            "dob": User.dob,
+            "dobt": User.dobt,
+            "phone": User.phone,
+            "email": User.email,
+        }
+
+        pa_attrs = {
+            "ms": "E",
+            "street": User.street,
+            "vtc": User.vtc,
+            "subdist": User.subdist,
+            "dist": User.district,
+            "state": User.state,
+            "country": "India",
+            "pc": User.pincode,
+        }
+
+        tree = self._pid_tree
+
+        root: Element = tree.getroot()
+        print(type(root))
+        root.attrib["ts"] = self._ts
+        root.attrib["ver"] = "2.0"
+        del root.attrib["wadh"]
+
+        demo = root.find("Demo")
+        if demo is not None:
+            del demo.attrib["lang"]
+
+            pi = demo.find("Pi")
+            if pi is not None:
+                pi.attrib = pi_attrs
+
+            pa = demo.find("Pa")
+            if pa is not None:
+                pa.attrib = pa_attrs
+
+            pfa = demo.find("Pfa")
+            if pfa is not None:
+                demo.remove(pfa)
+
+        del pi_attrs
+        del pa_attrs
+
+        bios = root.find("Bios")
+        if bios is not None:
+            root.remove(bios)
+
+        pv = root.find("Pv")
+        if pv is not None:
+            root.remove(pv)
+
+        return ET.tostring(root, encoding="utf8", xml_declaration=True).decode("utf8")
+
+    def _get_auth_attrs(self) -> Dict[str, str]:
+        txn_id = "public:auth:" + secrets.token_urlsafe(28)
+        attrs = {
+            "uid": self._uid,
+            "rc": "Y",
+            "ac": "public",
+            "sa": "public",
+            "ver": __auth_version__,
+            "txn": txn_id,
+            "lk": self._license,
+        }
+        return attrs
+
+    def create_auth_block(self, skey_block: str, pid_block: str, hmac_block: str) -> str:
+        tree = self._auth_tree
+
+        root: Element = tree.getroot()
+        root.attrib.update(self._auth_attrs)
+
+        uses = root.find("Uses")
+        if uses is not None:
+            uses.attrib.update(self._uses_attrs)
+
+        device = root.find("Device")
+        if device is not None:
+            root.remove(device)
+
+        skey = root.find("Skey")
+        if skey is not None:
+            skey.attrib["ci"] = self._cert.id
+            skey.text = skey_block
+
+        data = root.find("Data")
+        if data is not None:
+            data.attrib["type"] = "X"
+            data.text = pid_block
+
+        hmac = root.find("Hmac")
+        if hmac is not None:
+            hmac.text = hmac_block
+
+        sig = root.find("Signature")
+        if sig is not None:
+            sig.text = "This is Signature"
+
+        return ET.tostring(root, encoding="utf8", xml_declaration=True).decode("utf8")
+
+
+"""
 
 class SubNode(metaclass=ABCMeta):
     @abstractmethod
     def xml_link(self, parent: Element) -> Element:
         ...
-
 
 class RequestData:
     @dataclass
@@ -140,128 +287,4 @@ class RequestData:
             encoding="UTF-8",
             xml_declaration=True,
         ).decode()
-
-
-class XMLData:
-    def __init__(self, certificate: Certificate = None, uid: str = "", license: str = "", auth_attrs: Dict[str, str] = None,  uses_attrs: Dict[str, str] = None) -> None:
-        self._pid_tree = ET.parse('./resources/formats/input.pid.xml')
-        self._auth_tree = ET.parse('./resources/formats/input.xml')
-        self._uid = uid or User.uid
-        self._license = license or AppData.License.asa
-        self._cert = certificate or Certificate(AppData.stagging_certificate)
-        self._auth_attrs = auth_attrs or self._get_auth_attrs()
-        self._uses_attrs = uses_attrs or {
-            'pi': 'y',
-            'pa': 'y',
-            'pfa': 'n',
-            'bio': 'n',
-            'pin': 'n',
-            'otp': 'n',
-        }
-        self._ts = self._get_ts()
-
-    def _get_ts(self) -> str:
-        now = datetime.now()
-        ts = now.strftime("%Y-%m-%dT%H:%M:%S")
-        return ts
-
-    def create_pid_block(self) -> str:
-        pi_attrs = {
-            'ms': 'E',
-            'mv': '100',
-            'name': User.name,
-            'gender': User.gender,
-            'dob': User.dob,
-            'dobt': User.dobt,
-            'phone': User.phone,
-            'email': User.email,
-        }
-
-        pa_attrs = {
-            'ms': 'E',
-            'street': User.street,
-            'vtc': User.vtc,
-            'subdist': User.subdist,
-            'dist': User.district,
-            'state': User.state,
-            'country': 'India',
-            'pc': User.pincode,
-        }
-
-        tree = self._pid_tree
-
-        root = tree.getroot()
-        root.attrib['ts'] = self._ts
-        root.attrib['ver'] = '2.0'
-        del root.attrib['wadh']
-        
-        demo = root.find('Demo')
-        del demo.attrib['lang']
-
-        pi = demo.find('Pi')
-        pi.attrib = pi_attrs
-        del pi_attrs
-
-        pa = demo.find('Pa')
-        pa.attrib = pa_attrs
-        del pa_attrs
-
-        pfa = demo.find('Pfa')
-        demo.remove(pfa)
-
-        bios = root.find('Bios')
-        root.remove(bios)
-
-        pv = root.find('Pv')
-        root.remove(pv)
-
-        return ET.tostring(
-            root,
-            encoding='utf8',
-            xml_declaration=True
-        ).decode('utf8')
-
-    def _get_auth_attrs(self) -> Dict[str, str]:
-        txn_id = "public:auth:" + secrets.token_urlsafe(28)
-        attrs = {
-            'uid': self._uid,
-            'rc': 'Y',
-            'ac': 'public',
-            'sa': 'public',
-            'ver': __auth_version__,
-            'txn': txn_id,
-            'lk': self._license
-        }
-        return attrs
-
-    def create_auth_block(self, skey_block: str, pid_block: str, hmac_block: str) -> str:
-        tree = self._auth_tree
-
-        root = tree.getroot()
-        root.attrib.update(self._auth_attrs)
-
-        uses = root.find('Uses')
-        uses.attrib.update(self._uses_attrs)
-
-        device = root.find('Device')
-        root.remove(device)
-
-        skey = root.find('Skey')
-        skey.attrib['ci'] = self._cert.id
-        skey.text = skey_block
-
-        data = root.find('Data')
-        data.attrib['type'] = 'X'
-        data.text = pid_block
-
-        hmac = root.find('Hmac')
-        hmac.text = hmac_block
-
-        sig = root.find('Signature')
-        sig.text = 'This is Signature'
-
-        return ET.tostring(
-            root,
-            encoding='utf8',
-            xml_declaration=True
-        ).decode('utf8')
+"""
