@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from .data import User
+from authaadhaar.data import User
 
 
 class Collector:

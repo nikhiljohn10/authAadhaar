@@ -1,5 +1,5 @@
 # from .client import Client
-from .data import XMLData
+from authaadhaar.data import XMLData
 
 # c = Client()
 
