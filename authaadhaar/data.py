@@ -1,20 +1,17 @@
 import secrets
 from datetime import datetime
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 
 from defusedxml import ElementTree as ET
 
 from authaadhaar import __auth_version__
-
-from .encrypt import Certificate
+from authaadhaar.encrypt import Certificate
 
 if TYPE_CHECKING:
     # Does not exists at runtime. Only used for type checking.
     from .typing import Element, ElementTree
 
-# from xml.etree.ElementTree import Element, SubElement, tostring
-# from abc import ABCMeta, abstractmethod
-# from dataclasses import dataclass
+UserDataError = ValueError("User data is not fetched")
 
 
 class User:
@@ -38,40 +35,39 @@ class User:
 
 
 class AppData:
-    production_certificate = "./resources/certs/uidai_auth_prod.cer"
-    digital_signature = "./resources/certs/uidai_auth_sign_prod.cer"
-    stagging_certificate = "./resources/certs/uidai_auth_stage.cer"
+    class Certificate:
+        production = "./resources/certs/uidai_auth_prod.cer"
+        signature = "./resources/certs/uidai_auth_sign_prod.cer"
+        stagging = "./resources/certs/uidai_auth_stage.cer"
 
     class License:
         aua = "MBni88mRNM18dKdiVyDYCuddwXEQpl68dZAGBQ2nsOlGMzC9DkOVL5s"
         asa = "MMxNu7a6589B5x5RahDW-zNP7rhGbZb5HsTRwbi-VVNxkoFmkHGmYKM"
 
-    @staticmethod
-    def get_auth_url():
-        return f"http://auth.uidai.gov.in/{__auth_version__}/public/0/0/{AppData.License.asa}"
+    class Input:
+        auth = "./resources/formats/input.xml"
+        pid = "./resources/formats/input.pid.xml"
 
-    @staticmethod
-    def get_otp_url():
-        return f"http://developer.uidai.gov.in/otp/{__auth_version__}/public/0/0/{AppData.License.asa}"
+    auth_url = f"http://auth.uidai.gov.in/{__auth_version__}/public/0/0/{License.asa}"
+    otp_url = f"http://developer.uidai.gov.in/otp/{__auth_version__}/public/0/0/{License.asa}"
 
 
-class XMLData:
+class DataBuilder:
     def __init__(
         self,
-        certificate: Certificate = None,
-        uid: str = "",
-        license: str = "",
-        auth_attrs: Dict[str, str] = None,
-        uses_attrs: Dict[str, str] = None,
+        uid: str,
+        certificate: Optional[Certificate] = None,
+        license: Optional[str] = None,
+        auth_attrs: Optional[Dict[str, str]] = None,
+        uses_attrs: Optional[Dict[str, str]] = None,
     ) -> None:
-        self._pid_tree: ElementTree = ET.parse("./resources/formats/input.pid.xml")
-        print(type(self._pid_tree))
-        self._auth_tree: ElementTree = ET.parse("./resources/formats/input.xml")
-        self._uid = uid or User.uid
+        self._pid_tree: ElementTree = ET.parse(AppData.Input.pid)
+        self._auth_tree: ElementTree = ET.parse(AppData.Input.auth)
+        self._uid: str = uid
         self._license = license or AppData.License.asa
-        self._cert = certificate or Certificate(AppData.stagging_certificate)
-        self._auth_attrs = auth_attrs or self._get_auth_attrs()
-        self._uses_attrs = uses_attrs or {
+        self._cert = certificate or Certificate(AppData.Certificate.stagging)
+        self._auth_attrs: Dict[str, str] = auth_attrs or self._get_auth_attrs()
+        self._uses_attrs: Dict[str, str] = uses_attrs or {
             "pi": "y",
             "pa": "y",
             "pfa": "n",
@@ -79,41 +75,75 @@ class XMLData:
             "pin": "n",
             "otp": "n",
         }
-        self._ts = self._get_ts()
+        self.__user_data: Optional[Dict[str, str]] = None
 
-    def _get_ts(self) -> str:
+    def __get_ts(self) -> str:
         now = datetime.now()
         ts = now.strftime("%Y-%m-%dT%H:%M:%S")
         return ts
 
-    def create_pid_block(self) -> str:
+    def get_user_data(
+        self,
+        uid: str,
+        name: str = "",
+        dob: str = "",
+        gender: str = "",
+        phone: str = "",
+        email: str = "",
+        street: str = "",
+        village: str = "",
+        subdist: str = "",
+        district: str = "",
+        state: str = "",
+        country: str = "India",
+        pincode: str = "",
+    ) -> str:
+        self.__user_data = {
+            "uid": uid.strip(),
+            "name": name.strip(),
+            "dob": dob.strip(),
+            "gender": gender.strip(),
+            "phone": phone.strip(),
+            "email": email.strip(),
+            "street": street.strip(),
+            "vtc": village.strip(),
+            "subdist": subdist.strip(),
+            "district": district.strip(),
+            "state": state.strip(),
+            "country": country.strip(),
+            "pincode": pincode.strip(),
+        }
+        return self.__get_ts()
+
+    def build_pid_block(self, ts: str) -> str:
+        if self.__user_data is None:
+            raise UserDataError
+
         pi_attrs = {
             "ms": "E",
             "mv": "100",
-            "name": User.name,
-            "gender": User.gender,
-            "dob": User.dob,
-            "dobt": User.dobt,
-            "phone": User.phone,
-            "email": User.email,
+            "name": self.__user_data["name"],
+            "gender": self.__user_data["gender"],
+            "dob": self.__user_data["dob"],
+            "phone": self.__user_data["phone"],
+            "email": self.__user_data["email"],
         }
 
         pa_attrs = {
             "ms": "E",
-            "street": User.street,
-            "vtc": User.vtc,
-            "subdist": User.subdist,
-            "dist": User.district,
-            "state": User.state,
-            "country": "India",
-            "pc": User.pincode,
+            "street": self.__user_data["street"],
+            "vtc": self.__user_data["vtc"],
+            "subdist": self.__user_data["subdist"],
+            "dist": self.__user_data["district"],
+            "state": self.__user_data["state"],
+            "country": self.__user_data["country"],
+            "pc": self.__user_data["pincode"],
         }
 
         tree = self._pid_tree
 
         root: Element = tree.getroot()
-        print(type(root))
-        root.attrib["ts"] = self._ts
+        root.attrib["ts"] = ts
         root.attrib["ver"] = "2.0"
         del root.attrib["wadh"]
 
@@ -144,7 +174,7 @@ class XMLData:
         if pv is not None:
             root.remove(pv)
 
-        return ET.tostring(root, encoding="utf8", xml_declaration=True).decode("utf8")
+        return ET.tostring(root, encoding="unicode", xml_declaration=True)
 
     def _get_auth_attrs(self) -> Dict[str, str]:
         txn_id = "public:auth:" + secrets.token_urlsafe(28)
@@ -159,7 +189,11 @@ class XMLData:
         }
         return attrs
 
-    def create_auth_block(self, skey_block: str, pid_block: str, hmac_block: str) -> str:
+    def build_auth_block(self, skey_block: str, pid_block: str, hmac_block: str) -> str:
+
+        if self.__user_data is None:
+            raise UserDataError
+
         tree = self._auth_tree
 
         root: Element = tree.getroot()
@@ -189,102 +223,6 @@ class XMLData:
 
         sig = root.find("Signature")
         if sig is not None:
-            sig.text = "This is Signature"
+            sig.text = "TODO: Signature Block"
 
-        return ET.tostring(root, encoding="utf8", xml_declaration=True).decode("utf8")
-
-
-"""
-
-class SubNode(metaclass=ABCMeta):
-    @abstractmethod
-    def xml_link(self, parent: Element) -> Element:
-        ...
-
-class RequestData:
-    @dataclass
-    class Auth:
-        uid: str
-        consent: str
-        licese: str
-        transaction_id: str
-        tid: str = ""
-        aua_code: str = "public"
-        sub_aua_code: str = "public"
-        version: str = __auth_version__
-
-        def xml_root(self) -> Element:
-            element = Element(
-                "Auth",
-                {
-                    "uid": self.uid,
-                    "ver": self.version,
-                    "lk": self.licese,
-                    "tid": self.tid,
-                    "ac": self.aua_code,
-                    "sa": self.sub_aua_code,
-                    "txn": self.transaction_id,
-                },
-            )
-            return element
-
-    @dataclass
-    class Data(SubNode):
-        content: str
-
-        def xml_link(self, parent: Element) -> Element:
-            element = SubElement(parent, "Data")
-            element.text = self.content
-            return element
-
-    @dataclass
-    class Uses(SubNode):
-        personal_id: bool = True
-        personal_aadress: bool = False
-        full_address: bool = False
-        otp: bool = False
-        pin: bool = False
-        biometric: bool = False
-
-        def xml_link(self, parent: Element) -> Element:
-            element = SubElement(
-                parent,
-                "Uses",
-                {
-                    "pi": "y" if self.personal_id else "n",
-                    "pa": "y" if self.personal_aadress else "n",
-                    "pfa": "y" if self.full_address else "n",
-                    "otp": "y" if self.otp else "n",
-                    "pin": "y" if self.pin else "n",
-                    "bio": "y" if self.biometric else "n",
-                },
-            )
-            return element
-
-    @dataclass
-    class Skey(SubNode):
-        certificate_id: str
-        content: str
-
-        def xml_link(self, parent: Element) -> Element:
-            element = SubElement(parent, "Skey", {"ci": self.certificate_id})
-            element.text = self.content
-            return element
-
-    @dataclass
-    class Hmac(SubNode):
-        content: str
-
-        def xml_link(self, parent: Element) -> Element:
-            element = SubElement(parent, "Hmac")
-            element.text = self.content
-            return element
-
-    @staticmethod
-    def prettyXML(xml: Element) -> str:
-        return tostring(
-            xml,
-            encoding="UTF-8",
-            xml_declaration=True,
-        ).decode()
-"""
+        return ET.tostring(root, encoding="unicode", xml_declaration=True)

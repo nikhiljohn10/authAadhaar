@@ -6,7 +6,7 @@ from typing import Tuple
 import requests
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
-from .encrypt import Certificate
+from authaadhaar.encrypt import Certificate
 
 
 class Session:

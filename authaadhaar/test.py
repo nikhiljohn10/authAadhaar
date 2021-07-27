@@ -1,9 +1,7 @@
-# from .client import Client
-from .data import XMLData
+from .client import Client
 
-# c = Client()
+c = Client()
 
-# c.connect()
+auth = c.connect()
 
-x = XMLData()
-x.create_pid_block()
+print(auth)
