@@ -14,26 +14,6 @@ if TYPE_CHECKING:
 UserDataError = ValueError("User data is not fetched")
 
 
-class User:
-
-    uid = "999941057058"
-    auth_consent = "Y"
-
-    name = "Shivshankar Choudhury"
-    dob = "13-05-1968"
-    dobt = "V"
-    gender = "M"
-    phone = "2810806979"
-    email = "sschoudhury@dummyemail.com"
-
-    street = "12 Maulana Azad Marg"
-    vtc = "New Delhi"
-    subdist = "New Delhi"
-    district = "New Delhi"
-    state = "New delhi"
-    pincode = "110002"
-
-
 class AppData:
     class Certificate:
         production = "./resources/certs/uidai_auth_prod.cer"
@@ -56,17 +36,16 @@ class DataBuilder:
     def __init__(
         self,
         uid: str,
-        certificate: Optional[Certificate] = None,
-        license: Optional[str] = None,
-        auth_attrs: Optional[Dict[str, str]] = None,
+        certificate: Certificate,
+        license: str,
         uses_attrs: Optional[Dict[str, str]] = None,
     ) -> None:
         self._pid_tree: ElementTree = ET.parse(AppData.Input.pid)
         self._auth_tree: ElementTree = ET.parse(AppData.Input.auth)
         self._uid: str = uid
-        self._license = license or AppData.License.asa
-        self._cert = certificate or Certificate(AppData.Certificate.stagging)
-        self._auth_attrs: Dict[str, str] = auth_attrs or self._get_auth_attrs()
+        self._license = license
+        self._cert = certificate
+        self.__user_data: Optional[Dict[str, str]] = None
         self._uses_attrs: Dict[str, str] = uses_attrs or {
             "pi": "y",
             "pa": "y",
@@ -75,44 +54,29 @@ class DataBuilder:
             "pin": "n",
             "otp": "n",
         }
-        self.__user_data: Optional[Dict[str, str]] = None
 
     def __get_ts(self) -> str:
         now = datetime.now()
         ts = now.strftime("%Y-%m-%dT%H:%M:%S")
         return ts
 
-    def get_user_data(
-        self,
-        uid: str,
-        name: str = "",
-        dob: str = "",
-        gender: str = "",
-        phone: str = "",
-        email: str = "",
-        street: str = "",
-        village: str = "",
-        subdist: str = "",
-        district: str = "",
-        state: str = "",
-        country: str = "India",
-        pincode: str = "",
-    ) -> str:
+    def get_user_data(self, data: Dict[str, str]) -> str:
         self.__user_data = {
-            "uid": uid.strip(),
-            "name": name.strip(),
-            "dob": dob.strip(),
-            "gender": gender.strip(),
-            "phone": phone.strip(),
-            "email": email.strip(),
-            "street": street.strip(),
-            "vtc": village.strip(),
-            "subdist": subdist.strip(),
-            "district": district.strip(),
-            "state": state.strip(),
-            "country": country.strip(),
-            "pincode": pincode.strip(),
+            "name": "",
+            "dob": "",
+            "dobt": "",
+            "gender": "",
+            "phone": "",
+            "email": "",
+            "street": "",
+            "vtc": "",
+            "subdist": "",
+            "district": "",
+            "state": "",
+            "country": "",
+            "pincode": "",
         }
+        self.__user_data.update(data)
         return self.__get_ts()
 
     def build_pid_block(self, ts: str) -> str:
@@ -197,7 +161,7 @@ class DataBuilder:
         tree = self._auth_tree
 
         root: Element = tree.getroot()
-        root.attrib.update(self._auth_attrs)
+        root.attrib.update(self._get_auth_attrs())
 
         uses = root.find("Uses")
         if uses is not None:
