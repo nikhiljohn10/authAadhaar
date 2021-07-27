@@ -1,58 +1,22 @@
-# from typing import List
-# from xml.etree.ElementTree import Element
-
-# from .data import RequestData as RD
-# from .data import SubNode
-# from .data import AppData as AD
-
-# from .data import User
-# from .encrypt import Certificate
-# from .input import Collector
-# from .request import Session
+from authaadhaar.data import AppData as AD
+from authaadhaar.data import DataBuilder, User
+from authaadhaar.encrypt import Certificate
+from authaadhaar.request import Session
 
 
-# class Client:
-#     def __init__(self) -> None:
-#         self.cert = Certificate(location=AD.stagging_certificate)
+class Client:
+    def __init__(self, certificate: Certificate = None) -> None:
+        self.cert = certificate or Certificate(location=AD.Certificate.stagging)
 
-#     def connect(self):
-#         _req = Session(certificate=self.cert)
-#         self._data = Collector()
-#         self._data.collect()
-#         self.xml_root = self.load_xml_root()
-#         self.xml_nodes = self.load_xml_nodes(_req)
-#         self.compiled_xml()
-#         print(RD.prettyXML(self.xml_root))
-#         del _req
-
-#     def generate_pid_block(self):
-#         return f'<Pid ts="{self._data.ts}">This is PID block with user data of {self._data.user.name}</Pid>'
-
-#     def load_xml_root(self) -> Element:
-#         root = RD.Auth(
-#             uid=User.uid,
-#             consent=User.auth_consent,
-#             licese=AD.License.asa,
-#             transaction_id="testing",
-#         ).xml_root()
-
-#         return root
-
-#     def load_xml_nodes(self, req: Session):
-#         nodes: List[SubNode] = []
-#         pid_block = self.generate_pid_block()
-#         _encrypted_pid, _hmac = req.encrypt(pid_block, ts=self._data.ts)
-#         nodes.append(
-#             RD.Skey(
-#                 certificate_id=self.cert.id,
-#                 content=req.encrypted_key,
-#             )
-#         )
-#         nodes.append(RD.Uses())
-#         nodes.append(RD.Data(_encrypted_pid))
-#         nodes.append(RD.Hmac(_hmac))
-#         return nodes
-
-#     def compiled_xml(self):
-#         for n in self.xml_nodes:
-#             n.xml_link(self.xml_root)
+    def connect(self):
+        session = Session(certificate=self.cert)
+        builder = DataBuilder(uid=User.uid, certificate=self.cert)
+        timestamp = builder.get_user_data(uid="643113463845", name="nikhil")
+        pid_block = builder.build_pid_block(ts=timestamp)
+        encrypted_pid, encrypted_hmac = session.encrypt(pid_block, ts=timestamp)
+        auth_block = builder.build_auth_block(
+            skey_block=session.encrypted_key,
+            pid_block=encrypted_pid,
+            hmac_block=encrypted_hmac,
+        )
+        return auth_block
