@@ -1,14 +1,15 @@
 import secrets
 from datetime import datetime
 from typing import TYPE_CHECKING, Dict
-from defusedxml import ElementTree as ET
-from authaadhaar import __auth_version__
 
+from defusedxml import ElementTree as ET
+
+from authaadhaar import __auth_version__
 from authaadhaar.encrypt import Certificate
 
 if TYPE_CHECKING:
     # Does not exists at runtime. Only used for type checking.
-    from authaadhaar.typing import Element, ElementTree
+    from .typing import Element, ElementTree
 
 # from xml.etree.ElementTree import Element, SubElement, tostring
 # from abc import ABCMeta, abstractmethod
